@@ -1,6 +1,7 @@
 # Loading Library
 install.packages("pwr")
 install.packages("multcomp")
+install.packages("PMCMRplus")
 
 library(tidyverse)
 library(car)
@@ -10,6 +11,7 @@ library(pwr)
 library(lme4)
 library(MASS)
 library(multcomp)
+library(PMCMRplus)
 #loading Data
 
 raw_survey_data <- read.csv("Raw_Survey_Results.csv")
@@ -159,3 +161,4 @@ str(survey_data)
 #confirming the validity of the Messaging Data
 
 write.csv(survey_data, "CleanSurveydData.csv", row.names = FALSE)
+rm(raw_survey_data)

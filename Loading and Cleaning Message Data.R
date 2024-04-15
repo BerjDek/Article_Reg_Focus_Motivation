@@ -78,6 +78,7 @@ message_data <- message_data %>%
 
 
 write.csv(message_data, "CleanMessageData.csv", row.names = FALSE)
+rm(raw_message_data)
 
 
-
+#rm(message_data)

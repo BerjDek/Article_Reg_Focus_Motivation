@@ -46,3 +46,6 @@ user_data <- raw_user_data %>%
   filter(Registered_Participation_Date >= as.POSIXct("2020-10-02") & Registered_Participation_Date <= as.POSIXct("2023-12-31"))
 
 write.csv(user_data, "CleanUserData.csv", row.names = FALSE)
+rm(raw_user_data)
+
+#rm(user_data)
