@@ -1,4 +1,4 @@
-##Loading this is unncecasary for the regulatory focus paper, as I dont need to compare between the general po;uation and the ones that filled the survey.
+##Loading this is unnecessary for the regulatory focus paper, as I don't need to compare between the general popuation and the ones that filled the survey.
 #the n says the number of reports, but ask Agusti where the scores are coming from.
 
 raw_user_data <- read.csv(file="reports_by_uuid.csv", header = TRUE)

@@ -4,6 +4,7 @@ install.packages("multcomp")
 install.packages("PMCMRplus")
 
 library(tidyverse)
+library(corrplot)
 library(car)
 library(scales)
 library(broom)
@@ -15,8 +16,6 @@ library(PMCMRplus)
 #loading Data
 
 raw_survey_data <- read.csv("Raw_Survey_Results.csv")
-
-colnames(raw_survey_data)
 
 raw_survey_data <- raw_survey_data %>% rename( Language = Start.language,
                                                Consent = I.GIVE.MY.CONSENT.to.participate.in.this.study.and.allow.the.use.of.data.generated.in.Mosquito.Alert.on.my.device.to.be.re.used.in.this.research.project..,
@@ -145,6 +144,8 @@ survey_data <- survey_data %>%
   mutate(Complt_Survey = TRUE) %>% 
   ungroup()
 
+survey_data <- survey_data %>%
+  select(-Response.ID, -Last.page, -Language, -Consent, -Complt_Survey)  
 
 
 nrow(raw_survey_data %>% filter(Consent == "Yes" & nzchar(User_ID))%>%
@@ -155,10 +156,31 @@ str(survey_data)
 
 ## There are 238 consents that that have provided User Id's, after removing 8 that have done the survey twice. 
 
-#from the original 460 Observers there are 217 that have completed the entire survey, and provided their 
-#User IDs and whose entries will be analyzed. The total number of users that have provided consent and ID, 
-#making them eligible for the messaging experiment (without necessary knowledge of their regulatory focus) is 238, 
-#confirming the validity of the Messaging Data
+
+# Imputation of Missing Values
+print(sum(is.na(survey_data))) #how many missing values
+numerical_columns <- sapply(survey_data, is.numeric)
+survey_data[numerical_columns] <- lapply(survey_data[numerical_columns], function(x) replace(x, is.na(x), median(x, na.rm = TRUE)))
+#turning rows that got decimals back to numarals
+survey_data$Prom_3 <- floor(survey_data$Prom_3)
+survey_data$Prev_1 <- floor(survey_data$Prom_1)
+#redoing these to create reg orientation for those that have gotten imputation scores
+survey_data <- survey_data %>% mutate(Reg_Orientation = (Prom_1+Prom_2+Prom_3+Prom_4+Prom_5 - Prev_1 - Prev_2- Prev_3- Prev_4- Prev_5))
+survey_data <- survey_data %>%
+  mutate(Reg_Orientation_Cat = case_when(
+    Reg_Orientation < -1 ~ "Prevention",
+    Reg_Orientation >= -1 & Reg_Orientation <= 1 ~ "Neutral",
+    Reg_Orientation > 1 ~ "Promotion",
+    TRUE ~ as.character(NA)  # For NAs
+  ))
+raw_survey_data <- raw_survey_data %>% mutate(Reg_Orientation_Cat = as.factor(Reg_Orientation_Cat))
+print(sum(is.na(survey_data))) #only one remaining for the year
+rm(numerical_columns)
+
+#adding columns for only promotion and prevention
+survey_data <- survey_data %>%
+  mutate(Promotion =  (Prom_1+Prom_2+Prom_3+Prom_4+Prom_5),
+         Prevention = (Prev_1+Prev_2+Prev_3+Prev_4+Prev_5))
 
 write.csv(survey_data, "CleanSurveydData.csv", row.names = FALSE)
 rm(raw_survey_data)
