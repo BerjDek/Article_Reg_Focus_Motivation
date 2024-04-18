@@ -90,6 +90,10 @@ Motivator_Means_By_Reg_Focus <- survey_data %>%
   pivot_longer(-Reg_Orientation_Cat, names_to = "Motivator", values_to = "Mean") %>%
   pivot_wider(names_from = Reg_Orientation_Cat, values_from = Mean) 
 
+All_Motivator_Means <-  full_join(Motivator_Means, Motivator_Means_By_Reg_Focus, by = "Motivator") %>% 
+  rename(All = "Mean")
+rm(Motivator_Means, Motivator_Means_By_Reg_Focus)
+
 # top 6 of the motivators are shared, top motivation is the same 
 
 motivator_columns <- c("Security","Teaching", "Self_Direction","Stimulation", "Hedonism", "Achievement","Face","Conformity","Benevolence",
@@ -106,6 +110,8 @@ for (motivator in motivator_columns) {
   print(summary(anova_result))
   cat("\n")
 }
+
+rm(formula, motivator, motivator_columns)
 
 # The results show that the only significant results was the difference in the way Help_Science, Benevolence, and Stimulation were rated 
 # differently with varying regulatory focus orientations 
@@ -131,11 +137,14 @@ anova_result <- aov(Stimulation ~ Reg_Orientation_Cat, data = survey_data)
 tukey_result <- TukeyHSD(anova_result)
 print(tukey_result) #Promotion-Neutral P= 0.0046  Prevention-Neutral 0.0096
 
-rm(anova_result, motivator_columns)
+rm(anova_result, motivator_columns, tukey_result)
 
 #results show that there was no significant difference between any two groups for the scoring Benevolence, but participants with Neutral Orientation
-# scored Help_Science signicantly lower than those with Promotion Orientation, while maintaining to be ranked first amongst all motivators similarly
+# scored Help_Science significantly lower than those with Promotion Orientation, while maintaining to be ranked first among all motivators similarly
 # to both prevention and promotion oriented participants and Stimulation significantly lower than participants with both Prevention and Promotion
 # orientations. No significant differences in scoring were found for between promotion and prevention orientation volunteers
+
+
+
 
 
