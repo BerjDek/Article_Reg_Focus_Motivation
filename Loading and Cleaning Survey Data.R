@@ -4,6 +4,8 @@ install.packages("multcomp")
 install.packages("PMCMRplus")
 
 library(tidyverse)
+library(reshape2)
+
 library(corrplot)
 library(car)
 library(scales)
@@ -68,67 +70,23 @@ raw_survey_data <- raw_survey_data %>%
   mutate_at(vars(starts_with("Prom_"), starts_with("Prev_")), list(~as.numeric(str_extract(., "\\d+")))) #turning the Reg Focus Responses to Numeral
 
 
-raw_survey_data <- raw_survey_data %>% mutate(Network = as.numeric(Network))
-
-raw_survey_data <- raw_survey_data %>%  mutate(Participation_Date = as.factor(Participation_Date))
-
-
 raw_survey_data <- raw_survey_data %>%
   mutate(Other_Citi_Sci = ifelse(Other_Citi_Sci == "Yes", 1, 0)) # Converting Other_Citi_Sci to a binary variable
 
 
-#creating age groups
-raw_survey_data <- raw_survey_data %>%
-  mutate(Age_Group = case_when(
-    Age >= 18 & Age <= 25 ~ '18-25',
-    Age >= 26 & Age <= 35 ~ '26-35',
-    Age >= 36 & Age <= 48 ~ '36-48',
-    Age >= 49 & Age <= 62 ~ '49-62',
-    Age >= 63 ~ '63 and older',
-    TRUE ~ 'Unknown'  
-  ))
-
-raw_survey_data <- raw_survey_data %>% mutate(Age_Group = as.factor(Age_Group))
-
-#creating an average individual Reg Focus
-raw_survey_data <- raw_survey_data %>% mutate(Reg_Orientation = (Prom_1+Prom_2+Prom_3+Prom_4+Prom_5 - Prev_1 - Prev_2- Prev_3- Prev_4- Prev_5))
-
-
-# Adding categorical version of Reg_Orientation
-raw_survey_data <- raw_survey_data %>%
-  mutate(Reg_Orientation_Cat = case_when(
-    Reg_Orientation < -1 ~ "Prevention",
-    Reg_Orientation >= -1 & Reg_Orientation <= 1 ~ "Neutral",
-    Reg_Orientation > 1 ~ "Promotion",
-    TRUE ~ as.character(NA)  # For NAs
-  ))
-raw_survey_data <- raw_survey_data %>% mutate(Reg_Orientation_Cat = as.factor(Reg_Orientation_Cat))
-
-
-#Creating 4 higher level orders from CSMS of Levontin et.al
-
-raw_survey_data <- raw_survey_data %>%
-  mutate(Openness_To_Change = round((Self_Direction + Stimulation + Social_Expansion+Hedonism)/4,2)) %>%
-  mutate(Self_Enhancement = round((Achievement + Power + Face)/3,2)) %>%
-  mutate(Continuity = round((Routine + Conformity)/2,2)) %>%
-  mutate(Self_Transcendence = round((Universalism_Social + Universalism_Nature + Benevolence+ Help_Science)/4,2))  
-
-colnames(raw_survey_data)
-
-#rearranging 
 raw_survey_data <- raw_survey_data %>% 
-  dplyr::select(Response.ID, Last.page, Language, Consent, User_ID, Age, 
-                Age_Group, Gender, Country, Participation_Date, Network, 
-                Other_Citi_Sci, Reg_Orientation,Reg_Orientation_Cat, 
-                Openness_To_Change, Self_Enhancement, Continuity, Self_Transcendence, 
-                Security, Teaching, Self_Direction, Stimulation, Hedonism, 
+  dplyr::select(Response.ID, Last.page, Language, Consent, User_ID, Age,
+                Gender, Country, Participation_Date, Network, 
+                Other_Citi_Sci, Security, Teaching, Self_Direction, Stimulation, Hedonism, 
                 Achievement, Face, Conformity, Benevolence, Universalism_Social, 
                 Universalism_Nature, Routine, Social_Expansion, Power, 
-                Help_Science,Dislike, Env_Change, Prom_1, Prom_2, Prom_3, 
+                Help_Science, Prom_1, Prom_2, Prom_3, 
                 Prom_4, Prom_5,  Prev_1, Prev_2, Prev_3, Prev_4, Prev_5) %>% 
-  mutate( Age_Group = as.factor(Age_Group),
-          Gender = as.factor(Gender),
-          Country = as.factor(Country))
+  mutate( Gender = as.factor(Gender),
+          Country = as.factor(Country),
+          Network = as.numeric(Network),
+          Participation_Date = as.factor(Participation_Date))
+
 
 #data cleaning and Exploration
 
@@ -156,16 +114,17 @@ str(survey_data)
 
 ## There are 238 consents that that have provided User Id's, after removing 8 that have done the survey twice. 
 
+#replacing NA's with Median (median imputation is less sensitive to outliers and max 2 missing for each column )
+survey_data <- survey_data %>%
+  mutate(across(Security:Prev_5, ~replace(., is.na(.), median(., na.rm = TRUE))))
 
-# Imputation of Missing Values
-print(sum(is.na(survey_data))) #how many missing values
-numerical_columns <- sapply(survey_data, is.numeric)
-survey_data[numerical_columns] <- lapply(survey_data[numerical_columns], function(x) replace(x, is.na(x), median(x, na.rm = TRUE)))
-#turning rows that got decimals back to numarals
-survey_data$Prom_3 <- floor(survey_data$Prom_3)
-survey_data$Prev_1 <- floor(survey_data$Prom_1)
-#redoing these to create reg orientation for those that have gotten imputation scores
+
+
+#creating an average individual Reg Focus
 survey_data <- survey_data %>% mutate(Reg_Orientation = (Prom_1+Prom_2+Prom_3+Prom_4+Prom_5 - Prev_1 - Prev_2- Prev_3- Prev_4- Prev_5))
+
+
+# Adding categorical version of Reg_Orientation
 survey_data <- survey_data %>%
   mutate(Reg_Orientation_Cat = case_when(
     Reg_Orientation < -1 ~ "Prevention",
@@ -173,14 +132,17 @@ survey_data <- survey_data %>%
     Reg_Orientation > 1 ~ "Promotion",
     TRUE ~ as.character(NA)  # For NAs
   ))
-raw_survey_data <- raw_survey_data %>% mutate(Reg_Orientation_Cat = as.factor(Reg_Orientation_Cat))
-print(sum(is.na(survey_data))) #only one remaining for the year
-rm(numerical_columns)
+survey_data <- survey_data %>% mutate(Reg_Orientation_Cat = as.factor(Reg_Orientation_Cat))
+
 
 #adding columns for only promotion and prevention
 survey_data <- survey_data %>%
   mutate(Promotion =  (Prom_1+Prom_2+Prom_3+Prom_4+Prom_5),
          Prevention = (Prev_1+Prev_2+Prev_3+Prev_4+Prev_5))
+
+survey_data <- survey_data %>%
+  select(-Prom_1,-Prom_2,-Prom_3,-Prom_4,-Prom_5,-Prev_1,-Prev_2,-Prev_3,-Prev_4,-Prev_5)
+
 
 write.csv(survey_data, "CleanSurveydData.csv", row.names = FALSE)
 rm(raw_survey_data)
