@@ -24,8 +24,10 @@ reports_data_clean <- reports_data %>%
 data <- full_join(survey_data, reports_data_clean, by = "User_ID")
 
 
-colnames(data)
+data <- data %>%
+  left_join(user_data %>% select(User_ID, Accuracy), by = "User_ID")
 
+colnames(data)
 
 
 

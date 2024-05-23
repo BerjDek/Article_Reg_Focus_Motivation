@@ -3,8 +3,12 @@ install.packages("pwr")
 install.packages("multcomp")
 install.packages("PMCMRplus")
 
+install.packages("kableExtra")
+
 library(tidyverse)
 library(reshape2)
+library(kableExtra)
+library(broom)
 
 library(corrplot)
 library(car)
@@ -88,7 +92,21 @@ raw_survey_data <- raw_survey_data %>%
           Participation_Date = as.factor(Participation_Date))
 
 
-#data cleaning and Exploration
+#measuring number of people who clicked on the survey link.
+list_of_last_year <- raw_survey_data %>%
+  group_by(User_ID) %>%
+  filter(row_number() == 1) %>%
+  mutate(Complt_Survey = TRUE) %>% 
+  ungroup()
+
+list_of_last_year <- list_of_last_year %>%
+select(User_ID)
+#write.csv(list_of_last_year, "list_of_last_year.csv", row.names = FALSE)
+
+
+
+
+####data cleaning and Exploration
 
 #filtering to those who consented and completed the survey, and their UUID has been registered.
 
@@ -146,3 +164,6 @@ survey_data <- survey_data %>%
 
 write.csv(survey_data, "CleanSurveydData.csv", row.names = FALSE)
 rm(raw_survey_data)
+
+
+summary(survey_data)

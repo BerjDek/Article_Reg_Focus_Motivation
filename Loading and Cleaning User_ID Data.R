@@ -1,7 +1,7 @@
 ##Loading this is unnecessary for the regulatory focus paper, as I don't need to compare between the general popuation and the ones that filled the survey.
 #the n says the number of reports, but ask Agusti where the scores are coming from.
 
-raw_user_data <- read.csv(file="reports_by_uuid.csv", header = TRUE)
+raw_user_data <- read.csv(file="reports_by_uuid_2.csv", header = TRUE)
 
 
 ##
@@ -14,6 +14,7 @@ raw_user_data <- raw_user_data %>%
   mutate(Registered_Participation_Date = as.POSIXct(Registered_Participation_Date, format = "%Y-%m-%d %H:%M:%S"),
          Registered_Total_Reports = as.integer(Registered_Total_Reports)) %>%
   replace_na(list(Registered_Total_Reports = 0)) 
+
 
 
 
@@ -44,6 +45,17 @@ nrow(raw_user_data %>%
 ## NOTE there is a cutoff at end of 2024, if needs to be removed
 user_data <- raw_user_data %>%
   filter(Registered_Participation_Date >= as.POSIXct("2020-10-02") & Registered_Participation_Date <= as.POSIXct("2023-12-31"))
+
+
+user_data <- user_data %>%
+  filter(User_ID %in% survey_data$User_ID)
+
+
+user_data <- user_data %>%
+  mutate(Accuracy = (((hits_adult+maybes_adult)/total_adult)*100))
+
+
+anti_join(survey_data, user_data, by = "User_ID")
 
 write.csv(user_data, "CleanUserData.csv", row.names = FALSE)
 rm(raw_user_data)
